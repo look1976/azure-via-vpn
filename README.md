@@ -3,7 +3,10 @@ Powershell script that downloads json with all Azure services and regions and al
 
 Prerequisites: Powershell 7.x (parallel processing), local administrator rights, access to the internet (to download JSON from Microsoft website)
 
-Usage: .\azure-via-vpn.ps1 -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -iface <VPN_Interface_Name> [-VerboseDebug]
+Usage:
+<code>
+.\azure-via-vpn.ps1 -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -iface <VPN_Interface_Name> [-VerboseDebug]
+</code>
 
 Options:
   -action <enable|explain|list>   : Action to take. Options:
@@ -17,10 +20,10 @@ Options:
 
 Examples:
   1. Enable routes for all services/regions:
-       .\azure-via-vpn.ps1 -action enable -Services All -iface 'YourVPNInterfaceName'
+       <code>.\azure-via-vpn.ps1 -action enable -Services All -iface 'YourVPNInterfaceName'</code>
 
-  2. List routes for AzureActiveDirectory in 'eastus' and 'westus':
-       .\azure-via-vpn.ps1 -action explain -Services AzureActiveDirectory -Regions eastus,westus -iface 'YourVPNInterfaceName'
+  3. List routes for AzureActiveDirectory in 'eastus' and 'westus':
+       <code>.\azure-via-vpn.ps1 -action explain -Services AzureActiveDirectory -Regions eastus,westus -iface 'YourVPNInterfaceName'</code>
 
-  3. Reroute all traffic to Azure SQL in 'westeurope':
-       .\azure-via-vpn.ps1 -action enable -Services AzureSQL -Regions westeurope -iface 'YourVPNInterfaceName'
+  4. Reroute all traffic to Azure SQL in 'westeurope':
+       <code>.\azure-via-vpn.ps1 -action enable -Services AzureSQL -Regions westeurope -iface 'YourVPNInterfaceName'</code>
