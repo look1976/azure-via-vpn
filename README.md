@@ -8,6 +8,7 @@ Usage:
 .\azure-via-vpn.ps1 -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -iface <VPN_Interface_Name> [-VerboseDebug]
 </code>
 
+<code>
 Options:
   -action <enable|explain|list>   : Action to take. Options:
                                      enable  - Adds specified routes.
@@ -17,7 +18,8 @@ Options:
   -Regions <Region1,Region2>      : (Optional) Azure regions to filter by (e.g., 'westeurope').
   -iface <VPN_Interface_Name>     : VPN interface name to use (required).
   -VerboseDebug                   : (Optional) Detailed output for actions.
-
+</code>
+    
 Examples:
   1. Enable routes for all services/regions:
        <code>.\azure-via-vpn.ps1 -action enable -Services All -iface 'YourVPNInterfaceName'</code>
