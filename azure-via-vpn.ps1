@@ -51,13 +51,13 @@ function JSON-Download {
         $jsonDownloadUrl = ($pageContent.Content -match '(https://.*?ServiceTags_Public_\d+\.json)') ? $matches[1] : $null
     } catch {
         Write-Output "Error fetching the download page. Please check the URL or your internet connection."
-        return
+        return $null
     }
 
     # Validate the extracted URL
     if (-not $jsonDownloadUrl) {
         Write-Output "Error: Could not find the JSON download link on the page."
-        return
+        return $null
     }
 
     # Define the path to store the JSON file
@@ -72,7 +72,7 @@ function JSON-Download {
             Write-Output "Downloaded latest JSON file to $jsonFilePath"
         } catch {
             Write-Output "Error downloading the JSON file. Please check the URL or your internet connection."
-            return
+            return $null
         }
     } else {
         Write-Output "Using cached JSON file at $jsonFilePath"
