@@ -43,7 +43,7 @@ function JSON-Download {
     # Base URL to fetch the latest JSON file details
     $downloadPageUrl = "https://www.microsoft.com/en-gb/download/details.aspx?id=56519"
 
-    Write-Output "Fetching the latest JSON download link..."
+    Write-Verbose "Fetching the latest JSON download link..."
     
     # Get the page content and extract the direct download link using regex
     try {
@@ -66,19 +66,19 @@ function JSON-Download {
 
     # Download the JSON file only if it doesn't exist or is more than a day old
     if ((-not (Test-Path -Path $jsonFilePath)) -or ((Get-Item $jsonFilePath).LastWriteTime -lt (Get-Date).AddDays(-1))) {
-        Write-Output "Downloading the latest JSON file from $jsonDownloadUrl..."
+        Write-Verbose "Downloading the latest JSON file from $jsonDownloadUrl..."
         try {
             Invoke-WebRequest -Uri $jsonDownloadUrl -OutFile $jsonFilePath -UseBasicParsing
-            Write-Output "Downloaded latest JSON file to $jsonFilePath"
+            Write-Verbose "Downloaded latest JSON file to $jsonFilePath"
         } catch {
             Write-Output "Error downloading the JSON file. Please check the URL or your internet connection."
             return $null
         }
     } else {
-        Write-Output "Using cached JSON file at $jsonFilePath"
+        Write-Verbose "Using cached JSON file at $jsonFilePath"
     }
 
-    # Return the path to the JSON file
+    # Return the path to the JSON file without additional output
     return $jsonFilePath
 }
 
@@ -91,8 +91,13 @@ function List-AvailableRegionsAndServices {
         return
     }
 
-    # Parse the JSON data
-    $jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
+    # Parse the JSON data only if the file path is valid
+    try {
+        $jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
+    } catch {
+        Write-Output "Error: Failed to parse JSON data."
+        return
+    }
 
     # Extract unique regions and services
     $allRegions = $jsonData.values | ForEach-Object { $_.properties.region } | Where-Object { $_ } | Sort-Object -Unique
@@ -102,6 +107,7 @@ function List-AvailableRegionsAndServices {
     Write-Output "Available Regions: $($allRegions -join ', ')"
     Write-Output "Available Services: $($allServices -join ', ')"
 }
+
 
 # ----------- MAIN
 
