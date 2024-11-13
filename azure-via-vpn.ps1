@@ -140,21 +140,24 @@ if ($action -ne "list" -and -not ([Security.Principal.WindowsPrincipal] [Securit
 
 # Check if VPN is connected and retrieve VPN Gateway IP
 Write-Output "Checking if VPN connection '$iface' is active..."
-$vpnInterface = Get-NetIPConfiguration -InterfaceAlias $iface -ErrorAction SilentlyContinue
+try {
+    $vpnInterface = Get-NetIPConfiguration -InterfaceAlias $iface -ErrorAction SilentlyContinue
+} catch {
+    Write-Output "Error: Unable to retrieve VPN interface information."
+    exit 1
+}
 
-# If VPN is not connected, attempt to start it using rasdial
+# If VPN is not connected, attempt to start it using Connect-VpnConnection
 if (-not $vpnInterface) {
-    Write-Output "VPN connection '$iface' is not active. Attempting to start it..."
-    
-    # Start the VPN connection
-    $vpnConnectResult = rasdial "$iface"
+    Write-Output "VPN connection '$iface' is not active. Attempting to connect..."
 
-    # Check if the connection was successful by looking for the word "connected"
-    if ($vpnConnectResult -like "*connected*") {
+    try {
+        Connect-VpnConnection -Name $iface -Force
         Write-Output "VPN '$iface' successfully connected."
+        
         # Refresh the VPN interface information
-        $vpnInterface = Get-NetIPConfiguration -InterfaceAlias $iface
-    } else {
+        $vpnInterface = Get-NetIPConfiguration -InterfaceAlias $iface -ErrorAction SilentlyContinue
+    } catch {
         Write-Output "Failed to connect to VPN '$iface'. Please check the VPN configuration and try again."
         exit 1
     }
@@ -166,24 +169,38 @@ if (-not $vpnInterface) {
 $vpnGatewayIp = $vpnInterface.IPv4Address.IPv4Address
 Write-Output "VPN Gateway IP: $vpnGatewayIp"
 
-# Step 2: Download and parse the JSON data
-$downloadUrl = "https://download.microsoft.com/download/2/F/2/2F2E3192-62A9-4F55-B16A-77AA170605D1/ServiceTags_Public_20231016.json"
-$jsonFilePath = "$env:TEMP\ServiceTags_Public.json"
-
-# Check if JSON file already exists, if not, download it
-if (-not (Test-Path -Path $jsonFilePath)) {
-    Write-Output "Downloading JSON file..."
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $jsonFilePath
-    Write-Output "Downloaded JSON file to $jsonFilePath"
-} else {
-    Write-Output "Using existing JSON file at $jsonFilePath"
+# Step 2: Load JSON data for enable and explain actions using JSON-Download function
+$jsonFilePath = JSON-Download
+if (-not $jsonFilePath) {
+    Write-Output "Error: Could not download or locate the JSON file."
+    exit 1
 }
 
-# Load and parse the JSON data
-$jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
+# Parse JSON data for actions that require it
+try {
+    $jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
+} catch {
+    Write-Output "Error: Failed to parse JSON data."
+    exit 1
+}
 
-# Step 3: Define the Enable-Routes function to add routes
+# Enable-Routes function using JSON-Download to get the latest JSON file
 function Enable-Routes {
+    # Call JSON-Download to ensure the latest JSON data is available
+    $jsonFilePath = JSON-Download
+    if (-not $jsonFilePath) {
+        Write-Output "Error: Could not download or locate the JSON file."
+        return
+    }
+
+    # Parse the JSON data only if the file path is valid
+    try {
+        $jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
+    } catch {
+        Write-Output "Error: Failed to parse JSON data."
+        return
+    }
+
     Write-Output "Enabling specified routes in the active routing table..."
 
     # Prepare an array to store the matched IP ranges
