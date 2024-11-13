@@ -39,19 +39,67 @@ function Show-Syntax {
     Write-Output ""
 }
 
-# Step 0: Validate parameters and show syntax if parameters are missing or incorrect
+# Function to download the latest Azure services and regions JSON file
+function JSON-Download {
+    # Base URL to fetch the latest JSON file details
+    $downloadPageUrl = "https://www.microsoft.com/en-gb/download/details.aspx?id=56519&msockid=0043dbcde3946efe2795cef8e2ff6f7c"
+
+    Write-Output "Fetching the latest JSON download link..."
+    
+    # Get the page content and extract the direct download link using regex
+    $pageContent = Invoke-WebRequest -Uri $downloadPageUrl
+    $jsonDownloadUrl = ($pageContent.ParsedHtml.getElementsByTagName("a") | Where-Object { $_.href -match ".*\.json$" }).href
+
+    # Define the path to store the JSON file
+    $jsonFileName = [System.IO.Path]::GetFileName($jsonDownloadUrl)
+    $jsonFilePath = "$env:TEMP\$jsonFileName"
+
+    # Check if the JSON file already exists and download only if it's outdated
+    if ((-not (Test-Path -Path $jsonFilePath)) -or ((Get-Date -Path $jsonFilePath).AddDays(1) -lt (Get-Date))) {
+        Write-Output "Downloading the latest JSON file..."
+        Invoke-WebRequest -Uri $jsonDownloadUrl -OutFile $jsonFilePath
+        Write-Output "Downloaded latest JSON file to $jsonFilePath"
+    } else {
+        Write-Output "Using cached JSON file at $jsonFilePath"
+    }
+
+    # Return the path to the JSON file
+    return $jsonFilePath
+}
+
+# Function to list available Azure regions and services in a single line each
+function List-AvailableRegionsAndServices {
+    # Call JSON-Download to ensure the latest JSON data is available
+    $jsonFilePath = JSON-Download
+    $jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
+
+    # Extract unique regions and services
+    $allRegions = $jsonData.values | ForEach-Object { $_.properties.region } | Where-Object { $_ } | Sort-Object -Unique
+    $allServices = $jsonData.values | ForEach-Object { $_.properties.systemService } | Where-Object { $_ } | Sort-Object -Unique
+
+    # Display the regions and services in one line each
+    Write-Output "Available Regions: $($allRegions -join ', ')"
+    Write-Output "Available Services: $($allServices -join ', ')"
+}
+
+# Validate parameters and show syntax if parameters are missing or incorrect
 if (-not $action -or -not $iface) {
     Write-Output "Error: Missing or incorrect parameters."
     Show-Syntax
     exit 1
 }
 
-# Step 1: Check for elevated privileges
+# Check for elevated privileges
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Output "Error: This script must be run with elevated privileges. Please run as Administrator."
     exit 1
 }
 
+# If action is "list", call the list function and exit
+if ($action -eq "list") {
+    List-AvailableRegionsAndServices
+    exit 0
+}
 
 # Step 2: Check if VPN is connected and retrieve VPN Gateway IP
 Write-Output "Checking if VPN connection '$iface' is active..."
