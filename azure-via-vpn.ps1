@@ -1,13 +1,12 @@
 param (
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory=$true)]
     [ValidateSet("enable", "explain", "list")]
     [string]$action,
 
     [string[]]$Services,
     [string[]]$Regions,
     
-   # Make -iface mandatory only if -action is not "list"
-    [Parameter(Mandatory=($action -ne "list"))]
+    # Make -iface optional by not setting Mandatory here
     [string]$iface,
 
     [switch]$VerboseDebug
@@ -82,23 +81,32 @@ function List-AvailableRegionsAndServices {
     Write-Output "Available Services: $($allServices -join ', ')"
 }
 
-# Validate parameters and show syntax if parameters are missing or incorrect
-if (-not $action -or -not $iface) {
+# ----------- MAIN
+
+# Check if parameters are valid and show syntax if parameters are missing or incorrect
+if (-not $action) {
     Write-Output "Error: Missing or incorrect parameters."
     Show-Syntax
     exit 1
 }
 
-# Check for elevated privileges
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Output "Error: This script must be run with elevated privileges. Please run as Administrator."
+# Check if -iface is provided when required
+if (($action -eq "enable" -or $action -eq "explain") -and (-not $iface)) {
+    Write-Output "Error: The -iface parameter is required for the enable and explain actions."
+    Show-Syntax
     exit 1
 }
 
-# If action is "list", call the list function and exit
+# If action is "list", call the List-AvailableRegionsAndServices function and exit
 if ($action -eq "list") {
     List-AvailableRegionsAndServices
     exit 0
+}
+
+# Step 1: Check for elevated privileges (relevant only for enable and explain actions)
+if ($action -ne "list" -and -not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Write-Output "Error: This script must be run with elevated privileges. Please run as Administrator."
+    exit 1
 }
 
 # Step 2: Check if VPN is connected and retrieve VPN Gateway IP
