@@ -7,8 +7,8 @@ param (
     [string[]]$Regions,
     
     # Mandatory VPN interface name parameter
-    [Parameter(Mandatory=$true)]
-    [string]$iface,
+    #[Parameter(Mandatory=$true)]
+    #[string]$iface,
 
     [switch]$VerboseDebug
 )
