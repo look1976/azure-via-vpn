@@ -41,23 +41,39 @@ function Show-Syntax {
 # Function to download the latest Azure services and regions JSON file
 function JSON-Download {
     # Base URL to fetch the latest JSON file details
-    $downloadPageUrl = "https://www.microsoft.com/en-gb/download/details.aspx?id=56519&msockid=0043dbcde3946efe2795cef8e2ff6f7c"
+    $downloadPageUrl = "https://www.microsoft.com/en-gb/download/details.aspx?id=56519"
 
     Write-Output "Fetching the latest JSON download link..."
     
     # Get the page content and extract the direct download link using regex
-    $pageContent = Invoke-WebRequest -Uri $downloadPageUrl
-    $jsonDownloadUrl = ($pageContent.ParsedHtml.getElementsByTagName("a") | Where-Object { $_.href -match ".*\.json$" }).href
+    try {
+        $pageContent = Invoke-WebRequest -Uri $downloadPageUrl -UseBasicParsing
+        $jsonDownloadUrl = ($pageContent.Content -match '(https://.*?ServiceTags_Public_\d+\.json)') ? $matches[1] : $null
+    } catch {
+        Write-Output "Error fetching the download page. Please check the URL or your internet connection."
+        return
+    }
+
+    # Validate the extracted URL
+    if (-not $jsonDownloadUrl) {
+        Write-Output "Error: Could not find the JSON download link on the page."
+        return
+    }
 
     # Define the path to store the JSON file
     $jsonFileName = [System.IO.Path]::GetFileName($jsonDownloadUrl)
     $jsonFilePath = "$env:TEMP\$jsonFileName"
 
-    # Check if the JSON file already exists and download only if it's outdated
-    if ((-not (Test-Path -Path $jsonFilePath)) -or ((Get-Date -Path $jsonFilePath).AddDays(1) -lt (Get-Date))) {
-        Write-Output "Downloading the latest JSON file..."
-        Invoke-WebRequest -Uri $jsonDownloadUrl -OutFile $jsonFilePath
-        Write-Output "Downloaded latest JSON file to $jsonFilePath"
+    # Download the JSON file only if it doesn't exist or is more than a day old
+    if ((-not (Test-Path -Path $jsonFilePath)) -or ((Get-Item $jsonFilePath).LastWriteTime -lt (Get-Date).AddDays(-1))) {
+        Write-Output "Downloading the latest JSON file from $jsonDownloadUrl..."
+        try {
+            Invoke-WebRequest -Uri $jsonDownloadUrl -OutFile $jsonFilePath -UseBasicParsing
+            Write-Output "Downloaded latest JSON file to $jsonFilePath"
+        } catch {
+            Write-Output "Error downloading the JSON file. Please check the URL or your internet connection."
+            return
+        }
     } else {
         Write-Output "Using cached JSON file at $jsonFilePath"
     }
@@ -66,10 +82,16 @@ function JSON-Download {
     return $jsonFilePath
 }
 
-# Function to list available Azure regions and services in a single line each
+# Example use within List-AvailableRegionsAndServices function:
 function List-AvailableRegionsAndServices {
     # Call JSON-Download to ensure the latest JSON data is available
     $jsonFilePath = JSON-Download
+    if (-not $jsonFilePath) {
+        Write-Output "Error: Could not download or locate the JSON file."
+        return
+    }
+
+    # Parse the JSON data
     $jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
 
     # Extract unique regions and services
