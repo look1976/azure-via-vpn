@@ -105,6 +105,7 @@ function List-AvailableRegionsAndServices {
 
     # Display the regions and services in one line each
     Write-Output "Available Regions: $($allRegions -join ', ')"
+    Write-Output ""
     Write-Output "Available Services: $($allServices -join ', ')"
 }
 
@@ -131,13 +132,13 @@ if ($action -eq "list") {
     exit 0
 }
 
-# Step 1: Check for elevated privileges (relevant only for enable and explain actions)
+# Check for elevated privileges (relevant only for enable and explain actions)
 if ($action -ne "list" -and -not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Output "Error: This script must be run with elevated privileges. Please run as Administrator."
     exit 1
 }
 
-# Step 2: Check if VPN is connected and retrieve VPN Gateway IP
+# Check if VPN is connected and retrieve VPN Gateway IP
 Write-Output "Checking if VPN connection '$iface' is active..."
 $vpnInterface = Get-NetIPConfiguration -InterfaceAlias $iface -ErrorAction SilentlyContinue
 
