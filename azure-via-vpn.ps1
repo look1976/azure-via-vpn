@@ -6,9 +6,9 @@ param (
     [string[]]$Services,
     [string[]]$Regions,
     
-    # Mandatory VPN interface name parameter
-    #[Parameter(Mandatory=$true)]
-    #[string]$iface,
+   # Make -iface mandatory only if -action is not "list"
+    [Parameter(Mandatory=($action -ne "list"))]
+    [string]$iface,
 
     [switch]$VerboseDebug
 )
