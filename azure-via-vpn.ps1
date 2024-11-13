@@ -13,7 +13,7 @@ param (
     [switch]$VerboseDebug
 )
 
-# Display usage message with examples if no action is provided
+# Function to display syntax and examples
 function Show-Syntax {
     Write-Output "Usage: .\azure-via-vpn.ps1 -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -iface <VPN_Interface_Name> [-VerboseDebug]"
     Write-Output ""
@@ -39,12 +39,21 @@ function Show-Syntax {
     Write-Output ""
 }
 
-if (-not $action) {
+# Step 0: Validate parameters and show syntax if parameters are missing or incorrect
+if (-not $action -or -not $iface) {
+    Write-Output "Error: Missing or incorrect parameters."
     Show-Syntax
-    exit
+    exit 1
 }
 
-# Step 1: Check if VPN is connected and retrieve VPN Gateway IP
+# Step 1: Check for elevated privileges
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Write-Output "Error: This script must be run with elevated privileges. Please run as Administrator."
+    exit 1
+}
+
+
+# Step 2: Check if VPN is connected and retrieve VPN Gateway IP
 Write-Output "Checking if VPN connection '$iface' is active..."
 $vpnInterface = Get-NetIPConfiguration -InterfaceAlias $iface -ErrorAction SilentlyContinue
 
