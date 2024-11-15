@@ -34,3 +34,7 @@ Examples:
        <code>.\azure-via-vpn.ps1 -action enable -Services AzureSQL -Regions westeurope -iface 'YourVPNInterfaceName'</code>
 
 
+Known bugs: 
+rasdial <connectionName> is not always working so VPN must be enabled by hand.
+In that case start the following and click "Connect" next to respective VPN connection:
+PS > start ms-settings:network-vpn
