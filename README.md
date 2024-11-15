@@ -32,3 +32,5 @@ Examples:
 
   4. Reroute all traffic to Azure SQL in 'westeurope':
        <code>.\azure-via-vpn.ps1 -action enable -Services AzureSQL -Regions westeurope -iface 'YourVPNInterfaceName'</code>
+
+
