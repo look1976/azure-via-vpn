@@ -8,7 +8,7 @@ Prerequisites:
 
 Usage:
 <code>
-.\azure-via-vpn.ps -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -iface <VPN_Interface_Name> [-VerboseDebug]
+.\azure-via-vpn.ps -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -interfaceName <VPN_Interface_Name> [-VerboseDebug]
 </code>
 
 <code>
