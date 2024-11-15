@@ -213,12 +213,17 @@ if ($action -eq "enable") {
     # Show planned routing changes without applying them
     Write-Host "Planned Routing Changes:"
     $ipRangesToExplain = @()
+    
+    # Ensure $Services and $Regions are processed to lowercase before comparisons
+    $servicesLower = $Services | ForEach-Object { $_.ToLower() }
+    $regionsLower = $Regions | ForEach-Object { $_.ToLower() }
+
     foreach ($service in $jsonData.values) {
         $currentService = $service.properties.systemService.ToLower()
         $currentRegion = $service.properties.region.ToLower()
 
-        if (($Services -and $Services[0].ToLower() -ne "all" -and -not ($Services | ForEach-Object { $_.ToLower() } -contains $currentService)) -or
-            ($Regions -and -not ($Regions | ForEach-Object { $_.ToLower() } -contains $currentRegion))) {
+        if (($Services -and $servicesLower -ne @("all") -and -not ($servicesLower -contains $currentService)) -or
+            ($Regions -and -not ($regionsLower -contains $currentRegion))) {
             continue
         }
         $ipRangesToExplain += $service.properties.addressPrefixes
