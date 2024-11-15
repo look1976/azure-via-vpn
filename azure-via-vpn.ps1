@@ -14,34 +14,34 @@ param (
 
 # Sanity check: Verify if the script is running with elevated privileges
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Output "Error: This script must be run with elevated privileges. Please run as Administrator."
+    Write-Host "Error: This script must be run with elevated privileges. Please run as Administrator."
     exit 1
 }
 
 # Display usage message with examples if no action is provided
 function Show-Syntax {
-    Write-Output "Usage: .\azure-via-kmd-anywhere.ps1 -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -interfaceName <VPN_Interface_Name> [-VerboseDebug]"
-    Write-Output ""
-    Write-Output "Description:"
-    Write-Output "  This script manages Azure IP ranges in the active routing table through a VPN connection. It can add, list, or explain planned routing entries based on specified Azure services and regions."
-    Write-Output ""
-    Write-Output "Options:"
-    Write-Output "  -action <enable|explain|list>           : Specifies the action to take:"
-    Write-Output "                                              enable  - Adds specified routes."
-    Write-Output "                                              explain - Lists routes that would be added without making changes."
-    Write-Output "                                              list    - Lists all available regions and services."
-    Write-Output "  -Services <Service1,Service2|All>        : List of Azure services to filter IP ranges by. Specify 'All' to include all services."
-    Write-Output "  -Regions <Region1,Region2>               : (Optional) List of Azure regions to filter IP ranges by. Example: 'eastus', 'westus'"
-    Write-Output "  -interfaceName <VPN_Interface_Name>      : Name of the VPN interface to use for routing."
-    Write-Output "  -VerboseDebug                            : (Optional) Enables detailed output for each routing action performed."
-    Write-Output ""
-    Write-Output "Examples:"
-    Write-Output "  1. Enable routes for all services and regions with a specific VPN interface:"
-    Write-Output "     .\azure-via-kmd-anywhere.ps1 -action enable -Services All -interfaceName 'KMD-Anywhere'"
-    Write-Output ""
-    Write-Output "  2. List routes only for AzureActiveDirectory in eastus and westus regions:"
-    Write-Output "     .\azure-via-kmd-anywhere.ps1 -action explain -Services AzureActiveDirectory -Regions eastus,westus -interfaceName 'KMD-Anywhere'"
-    Write-Output ""
+    Write-Host "Usage: .\azure-via-kmd-anywhere.ps1 -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -interfaceName <VPN_Interface_Name> [-VerboseDebug]"
+    Write-Host ""
+    Write-Host "Description:"
+    Write-Host "  This script manages Azure IP ranges in the active routing table through a VPN connection. It can add, list, or explain planned routing entries based on specified Azure services and regions."
+    Write-Host ""
+    Write-Host "Options:"
+    Write-Host "  -action <enable|explain|list>           : Specifies the action to take:"
+    Write-Host "                                              enable  - Adds specified routes."
+    Write-Host "                                              explain - Lists routes that would be added without making changes."
+    Write-Host "                                              list    - Lists all available regions and services."
+    Write-Host "  -Services <Service1,Service2|All>        : List of Azure services to filter IP ranges by. Specify 'All' to include all services."
+    Write-Host "  -Regions <Region1,Region2>               : (Optional) List of Azure regions to filter IP ranges by. Example: 'eastus', 'westus'"
+    Write-Host "  -interfaceName <VPN_Interface_Name>      : Name of the VPN interface to use for routing."
+    Write-Host "  -VerboseDebug                            : (Optional) Enables detailed output for each routing action performed."
+    Write-Host ""
+    Write-Host "Examples:"
+    Write-Host "  1. Enable routes for all services and regions with a specific VPN interface:"
+    Write-Host "     .\azure-via-kmd-anywhere.ps1 -action enable -Services All -interfaceName 'KMD-Anywhere'"
+    Write-Host ""
+    Write-Host "  2. List routes only for AzureActiveDirectory in eastus and westus regions:"
+    Write-Host "     .\azure-via-kmd-anywhere.ps1 -action explain -Services AzureActiveDirectory -Regions eastus,westus -interfaceName 'KMD-Anywhere'"
+    Write-Host ""
 }
 
 if (-not $action) {
@@ -50,52 +50,40 @@ if (-not $action) {
 }
 
 function JSON-Download {
-    Write-Output "JSON-Download function"
     $downloadPageUrl = "https://www.microsoft.com/en-us/download/details.aspx?id=56519"
-    Write-Output "Fetching the latest JSON download link from $downloadPageUrl..."
+    Write-Host "Fetching the latest JSON download link from $downloadPageUrl..."
 
-    # Attempt to retrieve the download page
     try {
         $pageContent = Invoke-WebRequest -Uri $downloadPageUrl -UseBasicParsing
         $jsonDownloadUrl = ($pageContent.Content -match '(https://download\.microsoft\.com/download/.*?/ServiceTags_Public_\d+\.json)') ? $matches[1] : $null
     } catch {
-        Write-Output "Error: Unable to fetch the download page. Exception: $_"
+        Write-Error "Error: Unable to fetch the download page. Exception: $_"
         return $null
     }
 
     if (-not $jsonDownloadUrl) {
-        Write-Output "Error: Could not extract the JSON download link from the page."
+        Write-Error "Error: Could not extract the JSON download link from the page."
         return $null
     }
 
-    Write-Output "Extracted JSON download link: $jsonDownloadUrl"
-
-    # Determine the file name and path
     $jsonFileName = [System.IO.Path]::GetFileName($jsonDownloadUrl)
     $jsonFilePath = "$env:TEMP\$jsonFileName"
 
-    # Download the file if it doesn't exist or is outdated
     if ((-not (Test-Path -Path $jsonFilePath)) -or ((Get-Item $jsonFilePath).LastWriteTime -lt (Get-Date).AddDays(-1))) {
-        Write-Output "Downloading the latest JSON file to $jsonFilePath..."
+        Write-Host "Downloading the latest JSON file to $jsonFilePath..."
         try {
             Invoke-WebRequest -Uri $jsonDownloadUrl -OutFile $jsonFilePath -UseBasicParsing
-            Write-Output "Successfully downloaded the JSON file."
+            Write-Host "Successfully downloaded the JSON file."
         } catch {
-            Write-Output "Error: Failed to download the JSON file. Exception: $_"
+            Write-Error "Error: Failed to download the JSON file. Exception: $_"
             return $null
         }
     } else {
-        Write-Output "Using cached JSON file at $jsonFilePath"
+        Write-Host "Using cached JSON file at $jsonFilePath"
     }
 
-    # Confirm the file exists and return its path
-    if (Test-Path -Path $jsonFilePath) {
-        Write-Output "Returning JSON file path: $jsonFilePath"
-        return $jsonFilePath
-    } else {
-        Write-Output "Error: JSON file could not be found or downloaded."
-        return $null
-    }
+    # Explicitly return the file path
+    return $jsonFilePath
 }
 
 # Variables
@@ -104,68 +92,68 @@ function JSON-Download {
 $metricValue = 1
 
 # Step 1: Check if VPN is connected and retrieve VPN Gateway IP
-Write-Output "Checking if VPN connection '$interfaceName' is active..."
-$vpnInterface = Get-NetIPConfiguration -InterfaceAlias $interfaceName -ErrorAction SilentlyContinue
+Write-Host "Checking if VPN connection '$interfaceName' is active..."
+$vpnInterface = Get-NetIPConfiguration -InterfaceAlias $interfaceName -ErrorAction Stop
 
 # If VPN is not connected, attempt to start it using rasdial
 if (-not $vpnInterface) {
-    Write-Output "VPN connection '$interfaceName' is not active. Attempting to start it..."
+    Write-Host "VPN connection '$interfaceName' is not active. Attempting to start it..."
     
     # Start the VPN connection
     $vpnConnectResult = rasdial "$interfaceName"
 
     # Check if the connection was successful by looking for the word "connected"
     if ($vpnConnectResult -like "*connected*") {
-        Write-Output "VPN '$interfaceName' successfully connected."
+        Write-Host "VPN '$interfaceName' successfully connected."
         # Refresh the VPN interface information
         $vpnInterface = Get-NetIPConfiguration -InterfaceAlias $interfaceName
     } else {
-        Write-Output "Failed to connect to VPN '$interfaceName'. Please check the VPN configuration and try again."
-        Write-Output "If the problem persists try to start VPN manually by executing: "
-        Write-Output "> start ms-settings:network-vpn"
+        Write-Host "Failed to connect to VPN '$interfaceName'. Please check the VPN configuration and try again."
+        Write-Host "If the problem persists try to start VPN manually by executing: "
+        Write-Host "> start ms-settings:network-vpn"
         exit 1
     }
 } else {
-    Write-Output "VPN '$interfaceName' is already connected."
+    Write-Host "VPN '$interfaceName' is already connected."
 }
 
 # Set VPN Gateway IP
 $vpnGatewayIp = $vpnInterface.IPv4Address.IPv4Address
-Write-Output "VPN Gateway IP: $vpnGatewayIp"
+Write-Host "VPN Gateway IP: $vpnGatewayIp"
 
 # Step 2: Check and Download JSON File if Not Present
 #if (-not (Test-Path -Path $jsonFilePath)) {
-#    Write-Output "JSON file not found. Downloading..."
+#    Write-Host "JSON file not found. Downloading..."
 #    Invoke-WebRequest -Uri $downloadUrl -OutFile $jsonFilePath
-#    Write-Output "Downloaded JSON file to $jsonFilePath"
+#    Write-Host "Downloaded JSON file to $jsonFilePath"
 #} else {
-#    Write-Output "JSON file found at $jsonFilePath"
+#    Write-Host "JSON file found at $jsonFilePath"
 #}
 
 # Step 3: Load and Parse JSON File
-#Write-Output "Loading and parsing the JSON file to extract IP ranges..."
+#Write-Host "Loading and parsing the JSON file to extract IP ranges..."
 #$jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
 
 
 # Fetch and parse the JSON data
 $jsonFilePath = JSON-Download
 if (-not $jsonFilePath) {
-    Write-Output "Error: Could not download or locate the JSON file."
+    Write-Host "Error: Could not download or locate the JSON file."
     exit 1
 }
 
 try {
     $jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
-    Write-Output "Successfully parsed JSON data."
+    Write-Host "Sucessfully parsed JSON data at $jsonFilePath."
 } catch {
-    Write-Output "Error: Failed to parse JSON data at $jsonFilePath. Exception: $_"
+    Write-Host "Error: Failed to parse JSON data at $jsonFilePath. Exception: $_"
     exit 1
 }
 
 
 # Step 4: Define the Enable Function to Add Routes to Active Routing Table
 function Enable-Routes {
-    Write-Output "Enabling specified routes in the active routing table..."
+    Write-Host "Enabling specified routes in the active routing table..."
 
     # Prepare an array to store the matched IP ranges
     $ipRangesToEnable = @()
@@ -187,11 +175,11 @@ function Enable-Routes {
 
     # Show the number of routes that will be added
     $totalRoutes = $ipRangesToEnable.Count
-    Write-Output "$totalRoutes routes will be added."
+    Write-Host "$totalRoutes routes will be added."
 
     # If no routes matched, provide feedback and exit
     if ($totalRoutes -eq 0) {
-        Write-Output "No routes matched the specified Services and Regions. Please check your filters and try again."
+        Write-Host "No routes matched the specified Services and Regions. Please check your filters and try again."
         return
     }
 
@@ -215,7 +203,7 @@ function Enable-Routes {
     } -ThrottleLimit 10
 
     # Final output
-    Write-Output "Route addition completed."
+    Write-Host "Route addition completed."
 }
 
 # Execute the specified action
@@ -223,7 +211,7 @@ if ($action -eq "enable") {
     Enable-Routes
 } elseif ($action -eq "explain") {
     # Show planned routing changes without applying them
-    Write-Output "Planned Routing Changes:"
+    Write-Host "Planned Routing Changes:"
     $ipRangesToExplain = @()
     foreach ($service in $jsonData.values) {
         $currentService = $service.properties.systemService.ToLower()
@@ -235,12 +223,12 @@ if ($action -eq "enable") {
         }
         $ipRangesToExplain += $service.properties.addressPrefixes
     }
-    Write-Output "  - Routes to add: $($ipRangesToExplain.Count)"
+    Write-Host "  - Routes to add: $($ipRangesToExplain.Count)"
 } elseif ($action -eq "list") {
     # List all unique Regions and Services from the JSON data
     $allRegions = $jsonData.values | ForEach-Object { $_.properties.region } | Where-Object { $_ } | Sort-Object -Unique
     $allServices = $jsonData.values | ForEach-Object { $_.properties.systemService } | Where-Object { $_ } | Sort-Object -Unique
 
-    Write-Output "Regions: $(($allRegions -join ', '))"
-    Write-Output "Services: $(($allServices -join ', '))"
+    Write-Host "Regions: $(($allRegions -join ', '))"
+    Write-Host "Services: $(($allServices -join ', '))"
 }
