@@ -1,11 +1,14 @@
 # azure-via-vpn
 Powershell script that downloads json with all Azure services and regions and allows you to reroute traffic to specific ones over a VPN connection. Very useful once you are forced to access your corporate subscriptions from behind a VPN but you do not want to reroute all traffic to Internet via corporate VPN.
 
-Prerequisites: Powershell 7.x (parallel processing), local administrator rights, access to the internet (to download JSON from Microsoft website)
+Prerequisites:
+- Powershell 7.x (parallel processing)
+- local administrator rights
+- access to the internet (to download JSON from Microsoft website)
 
 Usage:
 <code>
-.\azure-via-vpn.ps1 -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -iface <VPN_Interface_Name> [-VerboseDebug]
+.\azure-via-vpn.ps -action <enable|explain|list> [-Services <Service1,Service2|All>] [-Regions <Region1,Region2>] -iface <VPN_Interface_Name> [-VerboseDebug]
 </code>
 
 <code>
