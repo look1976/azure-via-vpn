@@ -19,19 +19,19 @@ Options:
                                      list    - Lists all regions and services.
   -Services <Service1,Service2|All> : Azure services to filter by (e.g., 'AzureSQL').
   -Regions <Region1,Region2>      : (Optional) Azure regions to filter by (e.g., 'westeurope').
-  -iface <VPN_Interface_Name>     : VPN interface name to use (required).
+  -interfaceName <VPN_Interface_Name>     : VPN interface name to use (required).
   -VerboseDebug                   : (Optional) Detailed output for actions.
 </code>
     
 Examples:
   1. Enable routes for all services/regions:
-       <code>.\azure-via-vpn.ps1 -action enable -Services All -iface 'YourVPNInterfaceName'</code>
+       <code>.\azure-via-vpn.ps1 -action enable -Services All -interfaceName 'YourVPNInterfaceName'</code>
 
   3. List routes for AzureActiveDirectory in 'eastus' and 'westus':
-       <code>.\azure-via-vpn.ps1 -action explain -Services AzureActiveDirectory -Regions eastus,westus -iface 'YourVPNInterfaceName'</code>
+       <code>.\azure-via-vpn.ps1 -action explain -Services AzureActiveDirectory -Regions eastus,westus -interfaceName 'YourVPNInterfaceName'</code>
 
   4. Reroute all traffic to Azure SQL in 'westeurope':
-       <code>.\azure-via-vpn.ps1 -action enable -Services AzureSQL -Regions westeurope -iface 'YourVPNInterfaceName'</code>
+       <code>.\azure-via-vpn.ps1 -action enable -Services AzureSQL -Regions westeurope -interfaceName 'YourVPNInterfaceName'</code>
 
 
 Known bugs: 
