@@ -49,12 +49,60 @@ if (-not $action) {
     exit
 }
 
+function JSON-Download {
+    Write-Output "JSON-Download function"
+    $downloadPageUrl = "https://www.microsoft.com/en-us/download/details.aspx?id=56519"
+    Write-Output "Fetching the latest JSON download link from $downloadPageUrl..."
+
+    # Attempt to retrieve the download page
+    try {
+        $pageContent = Invoke-WebRequest -Uri $downloadPageUrl -UseBasicParsing
+        $jsonDownloadUrl = ($pageContent.Content -match '(https://download\.microsoft\.com/download/.*?/ServiceTags_Public_\d+\.json)') ? $matches[1] : $null
+    } catch {
+        Write-Output "Error: Unable to fetch the download page. Exception: $_"
+        return $null
+    }
+
+    if (-not $jsonDownloadUrl) {
+        Write-Output "Error: Could not extract the JSON download link from the page."
+        return $null
+    }
+
+    Write-Output "Extracted JSON download link: $jsonDownloadUrl"
+
+    # Determine the file name and path
+    $jsonFileName = [System.IO.Path]::GetFileName($jsonDownloadUrl)
+    $jsonFilePath = "$env:TEMP\$jsonFileName"
+
+    # Download the file if it doesn't exist or is outdated
+    if ((-not (Test-Path -Path $jsonFilePath)) -or ((Get-Item $jsonFilePath).LastWriteTime -lt (Get-Date).AddDays(-1))) {
+        Write-Output "Downloading the latest JSON file to $jsonFilePath..."
+        try {
+            Invoke-WebRequest -Uri $jsonDownloadUrl -OutFile $jsonFilePath -UseBasicParsing
+            Write-Output "Successfully downloaded the JSON file."
+        } catch {
+            Write-Output "Error: Failed to download the JSON file. Exception: $_"
+            return $null
+        }
+    } else {
+        Write-Output "Using cached JSON file at $jsonFilePath"
+    }
+
+    # Confirm the file exists and return its path
+    if (Test-Path -Path $jsonFilePath) {
+        Write-Output "Returning JSON file path: $jsonFilePath"
+        return $jsonFilePath
+    } else {
+        Write-Output "Error: JSON file could not be found or downloaded."
+        return $null
+    }
+}
+
 # Variables
-$downloadUrl = "https://download.microsoft.com/download/2/F/2/2F2E3192-62A9-4F55-B16A-77AA170605D1/ServiceTags_Public_20231016.json" # Replace this with the latest JSON download URL
-$jsonFilePath = "$env:TEMP\ServiceTags_Public.json" # Temp path to save JSON file
+#$downloadUrl = "https://download.microsoft.com/download/2/F/2/2F2E3192-62A9-4F55-B16A-77AA170605D1/ServiceTags_Public_20231016.json" # Replace this with the latest JSON download URL
+#$jsonFilePath = "$env:TEMP\ServiceTags_Public.json" # Temp path to save JSON file
 $metricValue = 1
 
-# Step 1: Check if VPN is connected and retrieve VPN Gateway IP
 # Step 1: Check if VPN is connected and retrieve VPN Gateway IP
 Write-Output "Checking if VPN connection '$interfaceName' is active..."
 $vpnInterface = Get-NetIPConfiguration -InterfaceAlias $interfaceName -ErrorAction SilentlyContinue
@@ -86,17 +134,34 @@ $vpnGatewayIp = $vpnInterface.IPv4Address.IPv4Address
 Write-Output "VPN Gateway IP: $vpnGatewayIp"
 
 # Step 2: Check and Download JSON File if Not Present
-if (-not (Test-Path -Path $jsonFilePath)) {
-    Write-Output "JSON file not found. Downloading..."
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $jsonFilePath
-    Write-Output "Downloaded JSON file to $jsonFilePath"
-} else {
-    Write-Output "JSON file found at $jsonFilePath"
-}
+#if (-not (Test-Path -Path $jsonFilePath)) {
+#    Write-Output "JSON file not found. Downloading..."
+#    Invoke-WebRequest -Uri $downloadUrl -OutFile $jsonFilePath
+#    Write-Output "Downloaded JSON file to $jsonFilePath"
+#} else {
+#    Write-Output "JSON file found at $jsonFilePath"
+#}
 
 # Step 3: Load and Parse JSON File
-Write-Output "Loading and parsing the JSON file to extract IP ranges..."
-$jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
+#Write-Output "Loading and parsing the JSON file to extract IP ranges..."
+#$jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
+
+
+# Fetch and parse the JSON data
+$jsonFilePath = JSON-Download
+if (-not $jsonFilePath) {
+    Write-Output "Error: Could not download or locate the JSON file."
+    exit 1
+}
+
+try {
+    $jsonData = Get-Content -Path $jsonFilePath | ConvertFrom-Json
+    Write-Output "Successfully parsed JSON data."
+} catch {
+    Write-Output "Error: Failed to parse JSON data at $jsonFilePath. Exception: $_"
+    exit 1
+}
+
 
 # Step 4: Define the Enable Function to Add Routes to Active Routing Table
 function Enable-Routes {
